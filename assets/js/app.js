@@ -15,9 +15,60 @@ const state = {
         step3: { device: '', withDV360: '否' },
         step4: { placements: [], order: [] },
         step5: {
-            cover: { needLead: '否', leadSeconds: '', frames: 0, leadImages: [], playVideo: '否', videoFile: null, needHold: '否', holdImage: null },
-            bottom: { mode: '', template: '', assets: [] },
-            inline: { mode: '', template: '', assets: [] }
+            cover: {
+                needLead: '否',
+                leadVideoFile: null,
+                playVideo: '否',
+                playVideoSource: '',
+                playVideoFile: null,
+                playVideoUrl: '',
+                playVideoTransform: { scale: 1, x: 0, y: 0 },
+                needHold: '否',
+                holdType: '',
+                holdMode: '',
+                holdTemplate: '',
+                holdAssets: [],
+                holdImage: null,
+                holdButton: { enabled: '否', imageFile: null },
+                needLanding: '否',
+                landingUrl: ''
+            },
+            bottom: {
+                needLead: '否',
+                leadVideoFile: null,
+                playVideo: '否',
+                playVideoSource: '',
+                playVideoFile: null,
+                playVideoUrl: '',
+                playVideoTransform: { scale: 1, x: 0, y: 0 },
+                needHold: '否',
+                holdType: '',
+                holdMode: '',
+                holdTemplate: '',
+                holdAssets: [],
+                holdImage: null,
+                holdButton: { enabled: '否', imageFile: null },
+                needLanding: '否',
+                landingUrl: ''
+            },
+            inline: {
+                needLead: '否',
+                leadVideoFile: null,
+                playVideo: '否',
+                playVideoSource: '',
+                playVideoFile: null,
+                playVideoUrl: '',
+                playVideoTransform: { scale: 1, x: 0, y: 0 },
+                needHold: '否',
+                holdType: '',
+                holdMode: '',
+                holdTemplate: '',
+                holdAssets: [],
+                holdImage: null,
+                holdButton: { enabled: '否', imageFile: null },
+                needLanding: '否',
+                landingUrl: ''
+            }
         },
         step6: { triggers: [], settings: {} },
         step7: { export: [] },
@@ -28,7 +79,7 @@ const industries = [
     '電商', '汽車', '3C/家電', '金融', '旅遊/飯店', '美妝保養', '餐飲', '日用品', '教育', '醫療保健', '娛樂/媒體', '房地產'
 ];
 
-const deviceSizes = ['手機', '平板', 'PC'];
+const deviceSizes = ['手機(600x500px)','手機(640x960px)','手機(600x1200px)','PC(1746x450px)'];
 const placements = ['蓋版', '置底', '文中'];
 const coverLeadSeconds = ['3秒', '4秒', '5秒', '6秒', '8秒', '10秒'];
 const bottomTemplates = ['置底版型A','置底版型B','置底版型C','置底版型D','置底版型E','置底版型F','置底版型G','置底版型H','置底版型I'];
@@ -77,6 +128,7 @@ function tick() {
     document.getElementById('btn-back').disabled = state.currentStep === 0;
     document.getElementById('btn-next').textContent = state.currentStep === state.steps.length - 1 ? '完成' : '下一步';
     setHint(state.steps[state.currentStep].hint);
+    renderGlobalPreview();
 }
 
 function renderStep() {
@@ -164,15 +216,84 @@ function renderStep3(host) {
     const devSel = document.createElement('select');
     const d0 = document.createElement('option'); d0.value=''; d0.textContent='請選擇裝置'; devSel.appendChild(d0);
     deviceSizes.forEach(v=>{ const o=document.createElement('option'); o.value=v; o.textContent=v; devSel.appendChild(o); });
-    devSel.value = state.form.step3.device; devSel.addEventListener('change', e=> state.form.step3.device = e.target.value);
+    devSel.value = state.form.step3.device; devSel.addEventListener('change', e=> { state.form.step3.device = e.target.value; renderGlobalPreview(); });
 
     const dvSel = document.createElement('select'); ['否','是'].forEach(v=>{ const o=document.createElement('option'); o.value=v; o.textContent=v; dvSel.appendChild(o); });
     dvSel.value = state.form.step3.withDV360; dvSel.addEventListener('change', e=> state.form.step3.withDV360 = e.target.value);
 
-    row.appendChild(createField('裝置尺寸', devSel));
+    row.appendChild(createField('裝置尺寸', devSel, '將影響預覽底圖比例與廣告尺寸'));    
     row.appendChild(createField('是否需要同步製作 DV360', dvSel));
     wrap.appendChild(row);
     host.appendChild(wrap);
+}
+
+// 全域預覽：根據 Step 3 的裝置與選擇的廣告版位尺寸，模擬底圖比例與廣告實際尺寸（縮放）
+function renderGlobalPreview(){
+    const host = document.getElementById('global-preview'); if (!host) return;
+    host.innerHTML = '';
+    // 決定底圖比例（僅依類別：手機/PC）
+    const device = state.form.step3.device || '';
+    const isPhone = device.startsWith('手機');
+    const bgBase = isPhone ? { w: 360, h: 640 } : { w: 1366, h: 768 }; // 示意比例
+    // 決定廣告尺寸（從選項解析）
+    let ad = null;
+    const m = device.match(/\((\d+)x(\d+)px\)/);
+    if (m) { ad = { w: parseInt(m[1],10), h: parseInt(m[2],10) }; }
+
+    const frame = document.createElement('div');
+    frame.style.width = '100%'; frame.style.maxWidth = '640px'; frame.style.margin = '0 auto';
+    frame.style.border = '1px dashed var(--border)'; frame.style.background = '#0b0e12'; frame.style.borderRadius = '10px';
+    frame.style.padding = '8px';
+
+    const stage = document.createElement('div');
+    stage.style.position='relative'; stage.style.width='100%';
+    const ratio = bgBase.h / bgBase.w; // 高寬比
+    stage.style.aspectRatio = `${bgBase.w} / ${bgBase.h}`; // 現代瀏覽器
+    stage.style.background = 'linear-gradient(180deg, #12161d 0%, #0e1218 100%)';
+    stage.style.overflow='hidden'; stage.style.borderRadius='8px';
+
+    // 模擬新聞底圖
+    const article = document.createElement('div'); article.style.position='absolute'; article.style.inset='0'; article.style.padding='12px'; article.style.color='#aab4c2'; article.style.fontSize='12px'; article.style.lineHeight='1.5'; article.style.overflow='hidden';
+    article.innerHTML = '<div style="height:14px;background:#263043;border-radius:4px;width:70%;margin:6px 0"></div>'.repeat(8);
+    stage.appendChild(article);
+
+    if (ad){
+        // 計算廣告在預覽中的實際尺寸，確保不同尺寸有明顯差異
+        const stageWidth = 600; // 預覽舞台寬度
+        const scale = stageWidth / bgBase.w; // 整體縮放比例
+        const adDisplayWidth = ad.w * scale;
+        const adDisplayHeight = ad.h * scale;
+        
+        const adBox = document.createElement('div'); 
+        adBox.style.position='absolute'; 
+        adBox.style.left='50%'; 
+        adBox.style.top='50%'; 
+        adBox.style.transform='translate(-50%, -50%)';
+        adBox.style.width = Math.min(adDisplayWidth, stageWidth * 0.8) + 'px';
+        adBox.style.height = Math.min(adDisplayHeight, stageWidth * 0.6) + 'px';
+        adBox.style.border='2px solid var(--accent)'; 
+        adBox.style.background='rgba(79,140,255,0.08)'; 
+        adBox.style.boxShadow='0 0 0 1px rgba(79,140,255,.2) inset';
+        adBox.style.borderRadius='4px';
+        
+        const label = document.createElement('div'); 
+        label.textContent = `廣告 ${ad.w}x${ad.h}`; 
+        label.style.position='absolute'; 
+        label.style.right='6px'; 
+        label.style.bottom='6px'; 
+        label.style.background='rgba(0,0,0,.7)'; 
+        label.style.padding='2px 6px'; 
+        label.style.borderRadius='6px'; 
+        label.style.fontSize='10px'; 
+        label.style.color='#d7e0ee';
+        label.style.whiteSpace='nowrap';
+        adBox.appendChild(label); 
+        stage.appendChild(adBox);
+    }
+
+    frame.appendChild(stage);
+    const cap = document.createElement('div'); cap.className='muted'; cap.style.marginTop='6px'; cap.textContent = device ? `預覽底圖比例：${isPhone ? '手機' : 'PC'}，廣告顯示尺寸：${ad? `${ad.w}x${ad.h}`:'未選擇'}` : '請在 Step 3 選擇裝置尺寸';
+    host.appendChild(frame); host.appendChild(cap);
 }
 
 // Step 4
@@ -234,145 +355,212 @@ function renderStep5(host) {
 
 function renderCoverSettings() {
     const box = document.createElement('div'); box.className='panel';
-    const title = document.createElement('h3'); title.textContent='蓋版｜前導特效 / 影片 / 停留畫面'; box.appendChild(title);
+    const title = document.createElement('h3'); title.textContent='蓋版｜四步驟設定'; box.appendChild(title);
 
+    // 第一步：是否需要前導特效
     const leadSel = document.createElement('select'); ['否','是'].forEach(v=>{ const o=document.createElement('option'); o.value=v; o.textContent=v; leadSel.appendChild(o); });
     leadSel.value = state.form.step5.cover.needLead; leadSel.addEventListener('change', e=>{ state.form.step5.cover.needLead = e.target.value; renderStep(); });
-    box.appendChild(createField('是否需要前導特效', leadSel));
+    box.appendChild(createField('第一步：是否需要前導特效', leadSel));
 
     if (state.form.step5.cover.needLead === '是') {
-        const secSel = document.createElement('select');
-        const ph = document.createElement('option'); ph.value=''; ph.textContent='選擇秒數'; secSel.appendChild(ph);
-        coverLeadSeconds.forEach(v=>{ const o=document.createElement('option'); o.value=v; o.textContent=v; secSel.appendChild(o); });
-        secSel.value = state.form.step5.cover.leadSeconds; secSel.addEventListener('change', e=>{ state.form.step5.cover.leadSeconds = e.target.value; updateFramesNeeded(); });
-        box.appendChild(createField('前導特效秒數', secSel));
-
-        const framesInfo = document.createElement('div'); framesInfo.className='muted';
-        function updateFramesNeeded() {
-            const s = parseInt((state.form.step5.cover.leadSeconds||'').replace('秒','')) || 0;
-            const frames = s * 10; state.form.step5.cover.frames = frames;
-            framesInfo.textContent = s ? `請上傳約 ${frames} 張 frames（10 FPS 估算）` : '請先選擇秒數以取得建議 frames 數量';
-        }
-        updateFramesNeeded();
-        box.appendChild(framesInfo);
-
-        const files = document.createElement('input'); files.type='file'; files.multiple=true; files.accept='image/*'; files.addEventListener('change', e=>{
-            state.form.step5.cover.leadImages = Array.from(e.target.files||[]);
-        });
-        box.appendChild(createField('上傳前導特效圖片序列', files));
+        const v = document.createElement('input'); v.type='file'; v.accept='video/*'; v.addEventListener('change', e=>{ state.form.step5.cover.leadVideoFile = (e.target.files||[])[0] || null; });
+        box.appendChild(createField('上傳特效影片檔', v));
     }
 
-    const videoSel = document.createElement('select'); ['否','是'].forEach(v=>{ const o=document.createElement('option'); o.value=v; o.textContent=v; videoSel.appendChild(o); });
-    videoSel.value = state.form.step5.cover.playVideo; videoSel.addEventListener('change', e=>{ state.form.step5.cover.playVideo = e.target.value; renderStep(); });
-    box.appendChild(createField('是否播放影片', videoSel));
+    // 第二步：是否要播放影片
+    const playVideoSel = document.createElement('select'); ['否','是'].forEach(v=>{ const o=document.createElement('option'); o.value=v; o.textContent=v; playVideoSel.appendChild(o); });
+    playVideoSel.value = state.form.step5.cover.playVideo; playVideoSel.addEventListener('change', e=>{ state.form.step5.cover.playVideo = e.target.value; renderStep(); });
+    box.appendChild(createField('第二步：是否要播放影片', playVideoSel));
 
     if (state.form.step5.cover.playVideo === '是') {
-        const v = document.createElement('input'); v.type='file'; v.accept='video/*'; v.addEventListener('change', e=>{ state.form.step5.cover.videoFile = (e.target.files||[])[0] || null; });
-        box.appendChild(createField('上傳影片檔', v));
+        const srcSel = document.createElement('select'); ['','上傳影片檔','輸入url網址'].forEach(v=>{ const o=document.createElement('option'); o.value=v; o.textContent=v||'選擇來源'; srcSel.appendChild(o); });
+        srcSel.value = state.form.step5.cover.playVideoSource; srcSel.addEventListener('change', e=>{ state.form.step5.cover.playVideoSource = e.target.value; renderStep(); });
+        box.appendChild(createField('影片來源', srcSel));
+
+        if (state.form.step5.cover.playVideoSource === '上傳影片檔') {
+            const v = document.createElement('input'); v.type='file'; v.accept='video/*'; v.addEventListener('change', e=>{ state.form.step5.cover.playVideoFile = (e.target.files||[])[0] || null; });
+            box.appendChild(createField('上傳影片檔', v));
+        }
+        if (state.form.step5.cover.playVideoSource === '輸入url網址') {
+            const t = document.createElement('input'); t.type='text'; t.placeholder='貼上可嵌入之影片網址'; t.value = state.form.step5.cover.playVideoUrl || '';
+            t.addEventListener('input', e=>{ state.form.step5.cover.playVideoUrl = e.target.value; });
+            box.appendChild(createField('影片網址（iframe）', t, '例如可嵌入的播放網址。'));
+        }
     }
 
+    // 第三步：是否需要停留畫面
     const holdSel = document.createElement('select'); ['否','是'].forEach(v=>{ const o=document.createElement('option'); o.value=v; o.textContent=v; holdSel.appendChild(o); });
     holdSel.value = state.form.step5.cover.needHold; holdSel.addEventListener('change', e=>{ state.form.step5.cover.needHold = e.target.value; renderStep(); });
-    box.appendChild(createField('是否需要停留畫面', holdSel));
+    box.appendChild(createField('第三步：是否需要停留畫面', holdSel));
 
     if (state.form.step5.cover.needHold === '是') {
-        const img = document.createElement('input'); img.type='file'; img.accept='image/*'; img.addEventListener('change', e=>{ state.form.step5.cover.holdImage = (e.target.files||[])[0] || null; });
-        box.appendChild(createField('上傳停留畫面圖片', img));
+        const typeSel = document.createElement('select'); ['','互動式版型','靜態畫面'].forEach(v=>{ const o=document.createElement('option'); o.value=v; o.textContent=v||'請選擇'; typeSel.appendChild(o); });
+        typeSel.value = state.form.step5.cover.holdType; typeSel.addEventListener('change', e=>{ state.form.step5.cover.holdType = e.target.value; renderStep(); });
+        box.appendChild(createField('停留畫面類型', typeSel));
+
+        if (state.form.step5.cover.holdType === '互動式版型') {
+            const modeSel = document.createElement('select'); ['','系統建議版型','自選版型'].forEach(v=>{ const o=document.createElement('option'); o.value=v; o.textContent=v||'請選擇'; modeSel.appendChild(o); });
+            modeSel.value = state.form.step5.cover.holdMode; modeSel.addEventListener('change', e=>{ state.form.step5.cover.holdMode = e.target.value; renderStep(); });
+            box.appendChild(createField('版型模式', modeSel));
+
+            if (state.form.step5.cover.holdMode === '自選版型') {
+                const grid = document.createElement('div'); grid.className='grid-tiles';
+                const coverTemplates = ['蓋版版型A','蓋版版型B','蓋版版型C','蓋版版型D','蓋版版型E','蓋版版型F','蓋版版型G','蓋版版型H','蓋版版型I'];
+                coverTemplates.forEach(t=>{
+                    const tile = document.createElement('div'); tile.className='tile' + (state.form.step5.cover.holdTemplate===t?' active':'');
+                    const ph = document.createElement('div'); ph.className='preview';
+                    const name = document.createElement('h4'); name.textContent=t;
+                    tile.appendChild(ph); tile.appendChild(name);
+                    tile.addEventListener('click', ()=>{ state.form.step5.cover.holdTemplate = t; state.form.step5.cover.holdAssets = []; renderStep(); });
+                    grid.appendChild(tile);
+                });
+                box.appendChild(createField('選擇蓋版版型', grid));
+
+                if (state.form.step5.cover.holdTemplate) {
+                    const up = document.createElement('input'); up.type='file'; up.multiple=true; up.accept='image/*,video/*';
+                    up.addEventListener('change', e=>{ state.form.step5.cover.holdAssets = Array.from(e.target.files||[]); renderStep(); });
+                    box.appendChild(createField('上傳素材（示意：需 2 件）', up));
+
+                    box.appendChild(buildCarouselPreview('蓋版互動式預覽', state.form.step5.cover.holdAssets));
+                }
+            } else if (state.form.step5.cover.holdMode === '系統建議版型') {
+                const info = document.createElement('div'); info.className='muted'; info.textContent='將由系統提供建議版型（此版本僅預留按鈕）。';
+                box.appendChild(info);
+            }
+        } else if (state.form.step5.cover.holdType === '靜態畫面') {
+            const img = document.createElement('input'); img.type='file'; img.accept='image/*'; img.addEventListener('change', e=>{ state.form.step5.cover.holdImage = (e.target.files||[])[0] || null; });
+            box.appendChild(createField('上傳停留畫面底圖', img));
+
+            const btnSel = document.createElement('select'); ['否','是'].forEach(v=>{ const o=document.createElement('option'); o.value=v; o.textContent=v; btnSel.appendChild(o); });
+            btnSel.value = state.form.step5.cover.holdButton.enabled; btnSel.addEventListener('change', e=>{ state.form.step5.cover.holdButton.enabled = e.target.value; renderStep(); });
+            box.appendChild(createField('是否置放按鈕', btnSel));
+
+            if (state.form.step5.cover.holdButton.enabled === '是') {
+                const btnImg = document.createElement('input'); btnImg.type='file'; btnImg.accept='image/*'; btnImg.addEventListener('change', e=>{ state.form.step5.cover.holdButton.imageFile = (e.target.files||[])[0] || null; });
+                box.appendChild(createField('上傳按鈕圖片', btnImg));
+            }
+        }
     }
 
+    // 第四步：是否需要導連著陸頁
+    const landingSel = document.createElement('select'); ['否','是'].forEach(v=>{ const o=document.createElement('option'); o.value=v; o.textContent=v; landingSel.appendChild(o); });
+    landingSel.value = state.form.step5.cover.needLanding; landingSel.addEventListener('change', e=>{ state.form.step5.cover.needLanding = e.target.value; renderStep(); });
+    box.appendChild(createField('第四步：是否需要導連著陸頁', landingSel));
+
+    if (state.form.step5.cover.needLanding === '是') {
+        const t = document.createElement('input'); t.type='text'; t.placeholder='輸入著陸頁網址'; t.value = state.form.step5.cover.landingUrl || '';
+        t.addEventListener('input', e=>{ state.form.step5.cover.landingUrl = e.target.value; });
+        box.appendChild(createField('著陸頁網址', t));
+    }
+
+    // 預覽區域
     const prev = document.createElement('div'); prev.className='preview-box';
     const controls = document.createElement('div'); controls.className='inline';
     const btnPlay = document.createElement('button'); btnPlay.className='btn'; btnPlay.textContent='播放';
     const btnPause = document.createElement('button'); btnPause.className='btn'; btnPause.textContent='暫停';
     const btnStop = document.createElement('button'); btnStop.className='btn ghost'; btnStop.textContent='停止';
     controls.appendChild(btnPlay); controls.appendChild(btnPause); controls.appendChild(btnStop);
-    const stage = document.createElement('div'); stage.style.minHeight = '120px'; stage.style.display='grid'; stage.style.placeItems='center';
+    const stage = document.createElement('div'); stage.style.minHeight = '220px'; stage.style.display='grid'; stage.style.placeItems='center'; stage.style.overflow='hidden'; stage.style.position='relative';
     prev.appendChild(controls); prev.appendChild(stage);
-    const hint = document.createElement('div'); hint.className='muted'; hint.style.marginTop='6px'; hint.textContent='預覽：依序展示前導特效 → 影片 → 停留畫面';
+    const hint = document.createElement('div'); hint.className='muted'; hint.style.marginTop='6px'; hint.textContent='預覽：前導特效 → 播放影片（可拖曳縮放） → 停留畫面';
     prev.appendChild(hint);
     box.appendChild(prev);
 
-    let frameTimer = null; let frameIdx = 0; let frames = [];
-    let videoEl = null; let pausedOnFrames = false; let playing = false;
+    let videoEl = null; let iframeEl = null; let playing = false;
+    let isPanning = false; let lastPos = {x:0,y:0};
 
     function clearStage(){
         stage.innerHTML = '';
-        if (frameTimer) { clearInterval(frameTimer); frameTimer = null; }
         if (videoEl) { try { videoEl.pause(); } catch(_){}; videoEl.src=''; videoEl.remove(); videoEl=null; }
+        if (iframeEl) { iframeEl.src='about:blank'; iframeEl.remove(); iframeEl=null; }
     }
 
-    function buildFrames(){
-        frames = (state.form.step5.cover.leadImages||[]).map(f=> makeUrl(f));
-        frameIdx = Math.min(frameIdx, Math.max(0, frames.length-1));
+    function attachTransformable(el){
+        el.style.position='absolute';
+        const t = state.form.step5.cover.playVideoTransform || { scale:1, x:0, y:0 };
+        function apply(){ el.style.transform = `translate(${t.x}px, ${t.y}px) scale(${t.scale})`; }
+        apply();
+        // 滑鼠拖曳
+        el.addEventListener('mousedown', (e)=>{ isPanning=true; lastPos={x:e.clientX - t.x, y:e.clientY - t.y}; });
+        window.addEventListener('mouseup', ()=> isPanning=false);
+        window.addEventListener('mousemove', (e)=>{ if(!isPanning) return; t.x = e.clientX - lastPos.x; t.y = e.clientY - lastPos.y; state.form.step5.cover.playVideoTransform = t; apply(); });
+        // 滾輪縮放
+        stage.addEventListener('wheel', (e)=>{ e.preventDefault(); const delta = e.deltaY < 0 ? 0.05 : -0.05; t.scale = Math.max(0.2, Math.min(3, (t.scale||1)+delta)); state.form.step5.cover.playVideoTransform = t; apply(); }, { passive:false });
+        // 觸控縮放與拖曳
+        let touchStartDist = 0; let touchDragging = false;
+        stage.addEventListener('touchstart', (e)=>{
+            if (e.touches.length===1){ touchDragging=true; lastPos={x:e.touches[0].clientX - t.x, y:e.touches[0].clientY - t.y}; }
+            if (e.touches.length===2){ touchDragging=false; touchStartDist = Math.hypot(e.touches[0].clientX-e.touches[1].clientX, e.touches[0].clientY-e.touches[1].clientY); }
+        }, { passive:true });
+        stage.addEventListener('touchmove', (e)=>{
+            if (e.touches.length===1 && touchDragging){ t.x = e.touches[0].clientX - lastPos.x; t.y = e.touches[0].clientY - lastPos.y; state.form.step5.cover.playVideoTransform = t; apply(); }
+            if (e.touches.length===2){ const dist = Math.hypot(e.touches[0].clientX-e.touches[1].clientX, e.touches[0].clientY-e.touches[1].clientY); const delta = (dist - touchStartDist)/300; t.scale = Math.max(0.2, Math.min(3, (t.scale||1) + delta)); state.form.step5.cover.playVideoTransform = t; apply(); touchStartDist = dist; }
+        }, { passive:true });
+        stage.addEventListener('touchend', ()=>{ touchDragging=false; });
     }
 
-    function playFrames(next){
-        if (!frames.length) { next(); return; }
+    function playLeadVideo(next){
         clearStage();
-        const img = document.createElement('img'); img.style.maxWidth='100%'; img.style.maxHeight='140px'; stage.appendChild(img);
-        const fps = 10; const interval = 1000 / fps;
-        frameTimer = setInterval(()=>{
-            if (frameIdx >= frames.length) { clearInterval(frameTimer); frameTimer=null; next(); return; }
-            img.src = frames[frameIdx++];
-        }, interval);
+        if (state.form.step5.cover.leadVideoFile){
+            videoEl = document.createElement('video'); videoEl.controls=false; videoEl.muted=true; videoEl.playsInline=true; videoEl.style.maxWidth='100%'; videoEl.style.maxHeight='100%';
+            videoEl.src = makeUrl(state.form.step5.cover.leadVideoFile); stage.appendChild(videoEl);
+            videoEl.onended = ()=> next(); videoEl.play().catch(()=> next()); return;
+        }
+        next();
     }
 
-    function playVideo(next){
-        if (!state.form.step5.cover.videoFile) { next(); return; }
+    function playMainVideo(next){
         clearStage();
-        videoEl = document.createElement('video');
-        videoEl.controls = false; videoEl.muted = true; videoEl.playsInline = true; videoEl.style.maxWidth='100%'; videoEl.style.maxHeight='140px';
-        videoEl.src = makeUrl(state.form.step5.cover.videoFile);
-        stage.appendChild(videoEl);
-        videoEl.onended = ()=> next();
-        videoEl.play().catch(()=> next());
+        const src = state.form.step5.cover.playVideoSource;
+        if (src === '上傳影片檔' && state.form.step5.cover.playVideoFile){
+            videoEl = document.createElement('video'); videoEl.controls=false; videoEl.muted=true; videoEl.playsInline=true; videoEl.style.maxWidth='100%'; videoEl.style.maxHeight='100%';
+            videoEl.src = makeUrl(state.form.step5.cover.playVideoFile); stage.appendChild(videoEl); attachTransformable(videoEl);
+            videoEl.onended = ()=> next(); videoEl.play().catch(()=> next()); return;
+        }
+        if (src === '輸入url網址' && state.form.step5.cover.playVideoUrl){
+            iframeEl = document.createElement('iframe'); iframeEl.src = state.form.step5.cover.playVideoUrl; iframeEl.allow='autoplay; encrypted-media'; iframeEl.style.border='0'; iframeEl.style.width='560px'; iframeEl.style.height='315px'; stage.appendChild(iframeEl); attachTransformable(iframeEl);
+            setTimeout(()=> next(), 10000); return;
+        }
+        next();
     }
 
     function showHold(){
         clearStage();
-        if (!state.form.step5.cover.holdImage) { return; }
-        const img = document.createElement('img'); img.style.maxWidth='100%'; img.style.maxHeight='140px';
-        img.src = makeUrl(state.form.step5.cover.holdImage); stage.appendChild(img);
+        if (state.form.step5.cover.holdType === '靜態畫面' && state.form.step5.cover.holdImage) {
+            const img = document.createElement('img'); img.style.maxWidth='100%'; img.style.maxHeight='100%';
+            img.src = makeUrl(state.form.step5.cover.holdImage); stage.appendChild(img);
+            
+            if (state.form.step5.cover.holdButton.enabled === '是' && state.form.step5.cover.holdButton.imageFile) {
+                const btn = document.createElement('img'); btn.style.position='absolute'; btn.style.bottom='20px'; btn.style.right='20px'; btn.style.maxWidth='80px'; btn.style.maxHeight='40px';
+                btn.src = makeUrl(state.form.step5.cover.holdButton.imageFile); stage.appendChild(btn);
+            }
+        }
     }
 
     function start(){
-        playing = true; pausedOnFrames = false;
-        buildFrames();
-        const needLead = state.form.step5.cover.needLead === '是' && frames.length>0;
-        const needVideo = state.form.step5.cover.playVideo === '是' && !!state.form.step5.cover.videoFile;
-        const needHold = state.form.step5.cover.needHold === '是' && !!state.form.step5.cover.holdImage;
+        playing = true;
+        const needLead = state.form.step5.cover.needLead === '是' && !!state.form.step5.cover.leadVideoFile;
+        const needPlayVideo = state.form.step5.cover.playVideo === '是' && (state.form.step5.cover.playVideoSource==='上傳影片檔' ? !!state.form.step5.cover.playVideoFile : !!state.form.step5.cover.playVideoUrl);
+        const needHold = state.form.step5.cover.needHold === '是';
 
-        function nextAfterFrames(){ needVideo ? playVideo(nextAfterVideo) : (needHold ? showHold() : clearStage()); }
-        function nextAfterVideo(){ needHold ? showHold() : clearStage(); }
+        function nextAfterLead(){ needPlayVideo ? playMainVideo(nextAfterPlayVideo) : (needHold ? showHold() : clearStage()); }
+        function nextAfterPlayVideo(){ needHold ? showHold() : clearStage(); }
 
-        if (needLead) playFrames(nextAfterFrames);
-        else if (needVideo) playVideo(nextAfterVideo);
+        if (needLead) playLeadVideo(nextAfterLead);
+        else if (needPlayVideo) playMainVideo(nextAfterPlayVideo);
         else if (needHold) showHold();
         else { clearStage(); }
     }
 
     function pause(){
         if (!playing) return;
-        if (frameTimer) { clearInterval(frameTimer); frameTimer=null; pausedOnFrames = true; }
         if (videoEl && !videoEl.paused) { videoEl.pause(); }
     }
     function resume(){
         if (!playing) { start(); return; }
-        if (pausedOnFrames) {
-            const needVideo = state.form.step5.cover.playVideo === '是' && !!state.form.step5.cover.videoFile;
-            function nextAfterFrames(){ needVideo ? playVideo(()=>{ const needHold = state.form.step5.cover.needHold === '是' && !!state.form.step5.cover.holdImage; needHold ? showHold() : clearStage(); }) : (state.form.step5.cover.needHold === '是' && state.form.step5.cover.holdImage ? showHold() : clearStage()); }
-            const img = document.createElement('img'); img.style.maxWidth='100%'; img.style.maxHeight='140px'; stage.appendChild(img);
-            const fps = 10; const interval = 1000 / fps;
-            frameTimer = setInterval(()=>{
-                if (frameIdx >= frames.length) { clearInterval(frameTimer); frameTimer=null; nextAfterFrames(); return; }
-                img.src = frames[frameIdx++];
-            }, interval);
-            pausedOnFrames = false;
-            return;
-        }
         if (videoEl && videoEl.paused) { videoEl.play().catch(()=>{}); }
     }
-    function stop(){ playing=false; frameIdx=0; clearStage(); }
+    function stop(){ playing=false; clearStage(); }
 
     btnPlay.addEventListener('click', ()=>{ if (playing) resume(); else start(); });
     btnPause.addEventListener('click', ()=> pause());
@@ -382,69 +570,431 @@ function renderCoverSettings() {
 
 function renderBottomSettings() {
     const box = document.createElement('div'); box.className='panel';
-    const title = document.createElement('h3'); title.textContent='置底｜版型選擇與素材上傳'; box.appendChild(title);
+    const title = document.createElement('h3'); title.textContent='置底｜四步驟設定'; box.appendChild(title);
 
-    const modeSel = document.createElement('select'); ['','系統建議版型','自選版型'].forEach(v=>{ const o=document.createElement('option'); o.value=v; o.textContent=v||'請選擇'; modeSel.appendChild(o); });
-    modeSel.value = state.form.step5.bottom.mode; modeSel.addEventListener('change', e=>{ state.form.step5.bottom.mode = e.target.value; state.form.step5.bottom.template=''; state.form.step5.bottom.assets=[]; renderStep(); });
-    box.appendChild(createField('模式', modeSel, '選擇系統建議或自選版型。'));
+    // 第一步：是否需要前導特效
+    const leadSel = document.createElement('select'); ['否','是'].forEach(v=>{ const o=document.createElement('option'); o.value=v; o.textContent=v; leadSel.appendChild(o); });
+    leadSel.value = state.form.step5.bottom.needLead; leadSel.addEventListener('change', e=>{ state.form.step5.bottom.needLead = e.target.value; renderStep(); });
+    box.appendChild(createField('第一步：是否需要前導特效', leadSel));
 
-    if (state.form.step5.bottom.mode === '自選版型') {
-        const grid = document.createElement('div'); grid.className='grid-tiles';
-        bottomTemplates.forEach(t=>{
-            const tile = document.createElement('div'); tile.className='tile' + (state.form.step5.bottom.template===t?' active':'');
-            const ph = document.createElement('div'); ph.className='preview';
-            const name = document.createElement('h4'); name.textContent=t;
-            tile.appendChild(ph); tile.appendChild(name);
-            tile.addEventListener('click', ()=>{ state.form.step5.bottom.template = t; state.form.step5.bottom.assets = []; renderStep(); });
-            grid.appendChild(tile);
-        });
-        box.appendChild(createField('選擇置底版型', grid));
-
-        if (state.form.step5.bottom.template) {
-            const up = document.createElement('input'); up.type='file'; up.multiple=true; up.accept='image/*,video/*';
-            up.addEventListener('change', e=>{ state.form.step5.bottom.assets = Array.from(e.target.files||[]); renderStep(); });
-            box.appendChild(createField('上傳素材（示意：需 2 件）', up));
-
-            box.appendChild(buildCarouselPreview('置底預覽', state.form.step5.bottom.assets));
-        }
-    } else if (state.form.step5.bottom.mode === '系統建議版型') {
-        const info = document.createElement('div'); info.className='muted'; info.textContent='將由系統提供建議版型（此版本僅預留按鈕）。';
-        box.appendChild(info);
+    if (state.form.step5.bottom.needLead === '是') {
+        const v = document.createElement('input'); v.type='file'; v.accept='video/*'; v.addEventListener('change', e=>{ state.form.step5.bottom.leadVideoFile = (e.target.files||[])[0] || null; });
+        box.appendChild(createField('上傳特效影片檔', v));
     }
+
+    // 第二步：是否要播放影片
+    const playVideoSel = document.createElement('select'); ['否','是'].forEach(v=>{ const o=document.createElement('option'); o.value=v; o.textContent=v; playVideoSel.appendChild(o); });
+    playVideoSel.value = state.form.step5.bottom.playVideo; playVideoSel.addEventListener('change', e=>{ state.form.step5.bottom.playVideo = e.target.value; renderStep(); });
+    box.appendChild(createField('第二步：是否要播放影片', playVideoSel));
+
+    if (state.form.step5.bottom.playVideo === '是') {
+        const srcSel = document.createElement('select'); ['','上傳影片檔','輸入url網址'].forEach(v=>{ const o=document.createElement('option'); o.value=v; o.textContent=v||'選擇來源'; srcSel.appendChild(o); });
+        srcSel.value = state.form.step5.bottom.playVideoSource; srcSel.addEventListener('change', e=>{ state.form.step5.bottom.playVideoSource = e.target.value; renderStep(); });
+        box.appendChild(createField('影片來源', srcSel));
+
+        if (state.form.step5.bottom.playVideoSource === '上傳影片檔') {
+            const v = document.createElement('input'); v.type='file'; v.accept='video/*'; v.addEventListener('change', e=>{ state.form.step5.bottom.playVideoFile = (e.target.files||[])[0] || null; });
+            box.appendChild(createField('上傳影片檔', v));
+        }
+        if (state.form.step5.bottom.playVideoSource === '輸入url網址') {
+            const t = document.createElement('input'); t.type='text'; t.placeholder='貼上可嵌入之影片網址'; t.value = state.form.step5.bottom.playVideoUrl || '';
+            t.addEventListener('input', e=>{ state.form.step5.bottom.playVideoUrl = e.target.value; });
+            box.appendChild(createField('影片網址（iframe）', t, '例如可嵌入的播放網址。'));
+        }
+    }
+
+    // 第三步：是否需要停留畫面
+    const holdSel = document.createElement('select'); ['否','是'].forEach(v=>{ const o=document.createElement('option'); o.value=v; o.textContent=v; holdSel.appendChild(o); });
+    holdSel.value = state.form.step5.bottom.needHold; holdSel.addEventListener('change', e=>{ state.form.step5.bottom.needHold = e.target.value; renderStep(); });
+    box.appendChild(createField('第三步：是否需要停留畫面', holdSel));
+
+    if (state.form.step5.bottom.needHold === '是') {
+        const typeSel = document.createElement('select'); ['','互動式版型','靜態畫面'].forEach(v=>{ const o=document.createElement('option'); o.value=v; o.textContent=v||'請選擇'; typeSel.appendChild(o); });
+        typeSel.value = state.form.step5.bottom.holdType; typeSel.addEventListener('change', e=>{ state.form.step5.bottom.holdType = e.target.value; renderStep(); });
+        box.appendChild(createField('停留畫面類型', typeSel));
+
+        if (state.form.step5.bottom.holdType === '互動式版型') {
+            const modeSel = document.createElement('select'); ['','系統建議版型','自選版型'].forEach(v=>{ const o=document.createElement('option'); o.value=v; o.textContent=v||'請選擇'; modeSel.appendChild(o); });
+            modeSel.value = state.form.step5.bottom.holdMode; modeSel.addEventListener('change', e=>{ state.form.step5.bottom.holdMode = e.target.value; renderStep(); });
+            box.appendChild(createField('版型模式', modeSel));
+
+            if (state.form.step5.bottom.holdMode === '自選版型') {
+                const grid = document.createElement('div'); grid.className='grid-tiles';
+                const bottomTemplates = ['置底版型A','置底版型B','置底版型C','置底版型D','置底版型E','置底版型F','置底版型G','置底版型H','置底版型I'];
+                bottomTemplates.forEach(t=>{
+                    const tile = document.createElement('div'); tile.className='tile' + (state.form.step5.bottom.holdTemplate===t?' active':'');
+                    const ph = document.createElement('div'); ph.className='preview';
+                    const name = document.createElement('h4'); name.textContent=t;
+                    tile.appendChild(ph); tile.appendChild(name);
+                    tile.addEventListener('click', ()=>{ state.form.step5.bottom.holdTemplate = t; state.form.step5.bottom.holdAssets = []; renderStep(); });
+                    grid.appendChild(tile);
+                });
+                box.appendChild(createField('選擇置底版型', grid));
+
+                if (state.form.step5.bottom.holdTemplate) {
+                    const up = document.createElement('input'); up.type='file'; up.multiple=true; up.accept='image/*,video/*';
+                    up.addEventListener('change', e=>{ state.form.step5.bottom.holdAssets = Array.from(e.target.files||[]); renderStep(); });
+                    box.appendChild(createField('上傳素材（示意：需 2 件）', up));
+
+                    box.appendChild(buildCarouselPreview('置底互動式預覽', state.form.step5.bottom.holdAssets));
+                }
+            } else if (state.form.step5.bottom.holdMode === '系統建議版型') {
+                const info = document.createElement('div'); info.className='muted'; info.textContent='將由系統提供建議版型（此版本僅預留按鈕）。';
+                box.appendChild(info);
+            }
+        } else if (state.form.step5.bottom.holdType === '靜態畫面') {
+            const img = document.createElement('input'); img.type='file'; img.accept='image/*'; img.addEventListener('change', e=>{ state.form.step5.bottom.holdImage = (e.target.files||[])[0] || null; });
+            box.appendChild(createField('上傳停留畫面底圖', img));
+
+            const btnSel = document.createElement('select'); ['否','是'].forEach(v=>{ const o=document.createElement('option'); o.value=v; o.textContent=v; btnSel.appendChild(o); });
+            btnSel.value = state.form.step5.bottom.holdButton.enabled; btnSel.addEventListener('change', e=>{ state.form.step5.bottom.holdButton.enabled = e.target.value; renderStep(); });
+            box.appendChild(createField('是否置放按鈕', btnSel));
+
+            if (state.form.step5.bottom.holdButton.enabled === '是') {
+                const btnImg = document.createElement('input'); btnImg.type='file'; btnImg.accept='image/*'; btnImg.addEventListener('change', e=>{ state.form.step5.bottom.holdButton.imageFile = (e.target.files||[])[0] || null; });
+                box.appendChild(createField('上傳按鈕圖片', btnImg));
+            }
+        }
+    }
+
+    // 第四步：是否需要導連著陸頁
+    const landingSel = document.createElement('select'); ['否','是'].forEach(v=>{ const o=document.createElement('option'); o.value=v; o.textContent=v; landingSel.appendChild(o); });
+    landingSel.value = state.form.step5.bottom.needLanding; landingSel.addEventListener('change', e=>{ state.form.step5.bottom.needLanding = e.target.value; renderStep(); });
+    box.appendChild(createField('第四步：是否需要導連著陸頁', landingSel));
+
+    if (state.form.step5.bottom.needLanding === '是') {
+        const t = document.createElement('input'); t.type='text'; t.placeholder='輸入著陸頁網址'; t.value = state.form.step5.bottom.landingUrl || '';
+        t.addEventListener('input', e=>{ state.form.step5.bottom.landingUrl = e.target.value; });
+        box.appendChild(createField('著陸頁網址', t));
+    }
+
+    // 預覽區域
+    const prev = document.createElement('div'); prev.className='preview-box';
+    const controls = document.createElement('div'); controls.className='inline';
+    const btnPlay = document.createElement('button'); btnPlay.className='btn'; btnPlay.textContent='播放';
+    const btnPause = document.createElement('button'); btnPause.className='btn'; btnPause.textContent='暫停';
+    const btnStop = document.createElement('button'); btnStop.className='btn ghost'; btnStop.textContent='停止';
+    controls.appendChild(btnPlay); controls.appendChild(btnPause); controls.appendChild(btnStop);
+    const stage = document.createElement('div'); stage.style.minHeight = '220px'; stage.style.display='grid'; stage.style.placeItems='center'; stage.style.overflow='hidden'; stage.style.position='relative';
+    prev.appendChild(controls); prev.appendChild(stage);
+    const hint = document.createElement('div'); hint.className='muted'; hint.style.marginTop='6px'; hint.textContent='預覽：前導特效 → 播放影片（可拖曳縮放） → 停留畫面';
+    prev.appendChild(hint);
+    box.appendChild(prev);
+
+    let videoEl = null; let iframeEl = null; let playing = false;
+    let isPanning = false; let lastPos = {x:0,y:0};
+
+    function clearStage(){
+        stage.innerHTML = '';
+        if (videoEl) { try { videoEl.pause(); } catch(_){}; videoEl.src=''; videoEl.remove(); videoEl=null; }
+        if (iframeEl) { iframeEl.src='about:blank'; iframeEl.remove(); iframeEl=null; }
+    }
+
+    function attachTransformable(el){
+        el.style.position='absolute';
+        const t = state.form.step5.bottom.playVideoTransform || { scale:1, x:0, y:0 };
+        function apply(){ el.style.transform = `translate(${t.x}px, ${t.y}px) scale(${t.scale})`; }
+        apply();
+        // 滑鼠拖曳
+        el.addEventListener('mousedown', (e)=>{ isPanning=true; lastPos={x:e.clientX - t.x, y:e.clientY - t.y}; });
+        window.addEventListener('mouseup', ()=> isPanning=false);
+        window.addEventListener('mousemove', (e)=>{ if(!isPanning) return; t.x = e.clientX - lastPos.x; t.y = e.clientY - lastPos.y; state.form.step5.bottom.playVideoTransform = t; apply(); });
+        // 滾輪縮放
+        stage.addEventListener('wheel', (e)=>{ e.preventDefault(); const delta = e.deltaY < 0 ? 0.05 : -0.05; t.scale = Math.max(0.2, Math.min(3, (t.scale||1)+delta)); state.form.step5.bottom.playVideoTransform = t; apply(); }, { passive:false });
+        // 觸控縮放與拖曳
+        let touchStartDist = 0; let touchDragging = false;
+        stage.addEventListener('touchstart', (e)=>{
+            if (e.touches.length===1){ touchDragging=true; lastPos={x:e.touches[0].clientX - t.x, y:e.touches[0].clientY - t.y}; }
+            if (e.touches.length===2){ touchDragging=false; touchStartDist = Math.hypot(e.touches[0].clientX-e.touches[1].clientX, e.touches[0].clientY-e.touches[1].clientY); }
+        }, { passive:true });
+        stage.addEventListener('touchmove', (e)=>{
+            if (e.touches.length===1 && touchDragging){ t.x = e.touches[0].clientX - lastPos.x; t.y = e.touches[0].clientY - lastPos.y; state.form.step5.bottom.playVideoTransform = t; apply(); }
+            if (e.touches.length===2){ const dist = Math.hypot(e.touches[0].clientX-e.touches[1].clientX, e.touches[0].clientY-e.touches[1].clientY); const delta = (dist - touchStartDist)/300; t.scale = Math.max(0.2, Math.min(3, (t.scale||1) + delta)); state.form.step5.bottom.playVideoTransform = t; apply(); touchStartDist = dist; }
+        }, { passive:true });
+        stage.addEventListener('touchend', ()=>{ touchDragging=false; });
+    }
+
+    function playLeadVideo(next){
+        clearStage();
+        if (state.form.step5.bottom.leadVideoFile){
+            videoEl = document.createElement('video'); videoEl.controls=false; videoEl.muted=true; videoEl.playsInline=true; videoEl.style.maxWidth='100%'; videoEl.style.maxHeight='100%';
+            videoEl.src = makeUrl(state.form.step5.bottom.leadVideoFile); stage.appendChild(videoEl);
+            videoEl.onended = ()=> next(); videoEl.play().catch(()=> next()); return;
+        }
+        next();
+    }
+
+    function playMainVideo(next){
+        clearStage();
+        const src = state.form.step5.bottom.playVideoSource;
+        if (src === '上傳影片檔' && state.form.step5.bottom.playVideoFile){
+            videoEl = document.createElement('video'); videoEl.controls=false; videoEl.muted=true; videoEl.playsInline=true; videoEl.style.maxWidth='100%'; videoEl.style.maxHeight='100%';
+            videoEl.src = makeUrl(state.form.step5.bottom.playVideoFile); stage.appendChild(videoEl); attachTransformable(videoEl);
+            videoEl.onended = ()=> next(); videoEl.play().catch(()=> next()); return;
+        }
+        if (src === '輸入url網址' && state.form.step5.bottom.playVideoUrl){
+            iframeEl = document.createElement('iframe'); iframeEl.src = state.form.step5.bottom.playVideoUrl; iframeEl.allow='autoplay; encrypted-media'; iframeEl.style.border='0'; iframeEl.style.width='560px'; iframeEl.style.height='315px'; stage.appendChild(iframeEl); attachTransformable(iframeEl);
+            setTimeout(()=> next(), 10000); return;
+        }
+        next();
+    }
+
+    function showHold(){
+        clearStage();
+        if (state.form.step5.bottom.holdType === '靜態畫面' && state.form.step5.bottom.holdImage) {
+            const img = document.createElement('img'); img.style.maxWidth='100%'; img.style.maxHeight='100%';
+            img.src = makeUrl(state.form.step5.bottom.holdImage); stage.appendChild(img);
+            
+            if (state.form.step5.bottom.holdButton.enabled === '是' && state.form.step5.bottom.holdButton.imageFile) {
+                const btn = document.createElement('img'); btn.style.position='absolute'; btn.style.bottom='20px'; btn.style.right='20px'; btn.style.maxWidth='80px'; btn.style.maxHeight='40px';
+                btn.src = makeUrl(state.form.step5.bottom.holdButton.imageFile); stage.appendChild(btn);
+            }
+        }
+    }
+
+    function start(){
+        playing = true;
+        const needLead = state.form.step5.bottom.needLead === '是' && !!state.form.step5.bottom.leadVideoFile;
+        const needPlayVideo = state.form.step5.bottom.playVideo === '是' && (state.form.step5.bottom.playVideoSource==='上傳影片檔' ? !!state.form.step5.bottom.playVideoFile : !!state.form.step5.bottom.playVideoUrl);
+        const needHold = state.form.step5.bottom.needHold === '是';
+
+        function nextAfterLead(){ needPlayVideo ? playMainVideo(nextAfterPlayVideo) : (needHold ? showHold() : clearStage()); }
+        function nextAfterPlayVideo(){ needHold ? showHold() : clearStage(); }
+
+        if (needLead) playLeadVideo(nextAfterLead);
+        else if (needPlayVideo) playMainVideo(nextAfterPlayVideo);
+        else if (needHold) showHold();
+        else { clearStage(); }
+    }
+
+    function pause(){
+        if (!playing) return;
+        if (videoEl && !videoEl.paused) { videoEl.pause(); }
+    }
+    function resume(){
+        if (!playing) { start(); return; }
+        if (videoEl && videoEl.paused) { videoEl.play().catch(()=>{}); }
+    }
+    function stop(){ playing=false; clearStage(); }
+
+    btnPlay.addEventListener('click', ()=>{ if (playing) resume(); else start(); });
+    btnPause.addEventListener('click', ()=> pause());
+    btnStop.addEventListener('click', ()=> stop());
     return box;
 }
 
 function renderInlineSettings() {
     const box = document.createElement('div'); box.className='panel';
-    const title = document.createElement('h3'); title.textContent='文中｜版型選擇與素材上傳'; box.appendChild(title);
+    const title = document.createElement('h3'); title.textContent='文中｜四步驟設定'; box.appendChild(title);
 
-    const modeSel = document.createElement('select'); ['','系統建議版型','自選版型'].forEach(v=>{ const o=document.createElement('option'); o.value=v; o.textContent=v||'請選擇'; modeSel.appendChild(o); });
-    modeSel.value = state.form.step5.inline.mode; modeSel.addEventListener('change', e=>{ state.form.step5.inline.mode = e.target.value; state.form.step5.inline.template=''; state.form.step5.inline.assets=[]; renderStep(); });
-    box.appendChild(createField('模式', modeSel));
+    // 第一步：是否需要前導特效
+    const leadSel = document.createElement('select'); ['否','是'].forEach(v=>{ const o=document.createElement('option'); o.value=v; o.textContent=v; leadSel.appendChild(o); });
+    leadSel.value = state.form.step5.inline.needLead; leadSel.addEventListener('change', e=>{ state.form.step5.inline.needLead = e.target.value; renderStep(); });
+    box.appendChild(createField('第一步：是否需要前導特效', leadSel));
 
-    if (state.form.step5.inline.mode === '自選版型') {
-        const grid = document.createElement('div'); grid.className='grid-tiles';
-        inlineTemplates.forEach(t=>{
-            const tile = document.createElement('div'); tile.className='tile' + (state.form.step5.inline.template===t?' active':'');
-            const ph = document.createElement('div'); ph.className='preview';
-            const name = document.createElement('h4'); name.textContent=t;
-            tile.appendChild(ph); tile.appendChild(name);
-            tile.addEventListener('click', ()=>{ state.form.step5.inline.template = t; state.form.step5.inline.assets = []; renderStep(); });
-            grid.appendChild(tile);
-        });
-        box.appendChild(createField('選擇文中版型', grid));
-
-        if (state.form.step5.inline.template) {
-            const up = document.createElement('input'); up.type='file'; up.multiple=true; up.accept='image/*,video/*';
-            up.addEventListener('change', e=>{ state.form.step5.inline.assets = Array.from(e.target.files||[]); renderStep(); });
-            box.appendChild(createField('上傳素材（示意：需 2 件）', up));
-
-            box.appendChild(buildCarouselPreview('文中預覽', state.form.step5.inline.assets));
-        }
-    } else if (state.form.step5.inline.mode === '系統建議版型') {
-        const info = document.createElement('div'); info.className='muted'; info.textContent='將由系統提供建議版型（此版本僅預留按鈕）。';
-        box.appendChild(info);
+    if (state.form.step5.inline.needLead === '是') {
+        const v = document.createElement('input'); v.type='file'; v.accept='video/*'; v.addEventListener('change', e=>{ state.form.step5.inline.leadVideoFile = (e.target.files||[])[0] || null; });
+        box.appendChild(createField('上傳特效影片檔', v));
     }
+
+    // 第二步：是否要播放影片
+    const playVideoSel = document.createElement('select'); ['否','是'].forEach(v=>{ const o=document.createElement('option'); o.value=v; o.textContent=v; playVideoSel.appendChild(o); });
+    playVideoSel.value = state.form.step5.inline.playVideo; playVideoSel.addEventListener('change', e=>{ state.form.step5.inline.playVideo = e.target.value; renderStep(); });
+    box.appendChild(createField('第二步：是否要播放影片', playVideoSel));
+
+    if (state.form.step5.inline.playVideo === '是') {
+        const srcSel = document.createElement('select'); ['','上傳影片檔','輸入url網址'].forEach(v=>{ const o=document.createElement('option'); o.value=v; o.textContent=v||'選擇來源'; srcSel.appendChild(o); });
+        srcSel.value = state.form.step5.inline.playVideoSource; srcSel.addEventListener('change', e=>{ state.form.step5.inline.playVideoSource = e.target.value; renderStep(); });
+        box.appendChild(createField('影片來源', srcSel));
+
+        if (state.form.step5.inline.playVideoSource === '上傳影片檔') {
+            const v = document.createElement('input'); v.type='file'; v.accept='video/*'; v.addEventListener('change', e=>{ state.form.step5.inline.playVideoFile = (e.target.files||[])[0] || null; });
+            box.appendChild(createField('上傳影片檔', v));
+        }
+        if (state.form.step5.inline.playVideoSource === '輸入url網址') {
+            const t = document.createElement('input'); t.type='text'; t.placeholder='貼上可嵌入之影片網址'; t.value = state.form.step5.inline.playVideoUrl || '';
+            t.addEventListener('input', e=>{ state.form.step5.inline.playVideoUrl = e.target.value; });
+            box.appendChild(createField('影片網址（iframe）', t, '例如可嵌入的播放網址。'));
+        }
+    }
+
+    // 第三步：是否需要停留畫面
+    const holdSel = document.createElement('select'); ['否','是'].forEach(v=>{ const o=document.createElement('option'); o.value=v; o.textContent=v; holdSel.appendChild(o); });
+    holdSel.value = state.form.step5.inline.needHold; holdSel.addEventListener('change', e=>{ state.form.step5.inline.needHold = e.target.value; renderStep(); });
+    box.appendChild(createField('第三步：是否需要停留畫面', holdSel));
+
+    if (state.form.step5.inline.needHold === '是') {
+        const typeSel = document.createElement('select'); ['','互動式版型','靜態畫面'].forEach(v=>{ const o=document.createElement('option'); o.value=v; o.textContent=v||'請選擇'; typeSel.appendChild(o); });
+        typeSel.value = state.form.step5.inline.holdType; typeSel.addEventListener('change', e=>{ state.form.step5.inline.holdType = e.target.value; renderStep(); });
+        box.appendChild(createField('停留畫面類型', typeSel));
+
+        if (state.form.step5.inline.holdType === '互動式版型') {
+            const modeSel = document.createElement('select'); ['','系統建議版型','自選版型'].forEach(v=>{ const o=document.createElement('option'); o.value=v; o.textContent=v||'請選擇'; modeSel.appendChild(o); });
+            modeSel.value = state.form.step5.inline.holdMode; modeSel.addEventListener('change', e=>{ state.form.step5.inline.holdMode = e.target.value; renderStep(); });
+            box.appendChild(createField('版型模式', modeSel));
+
+            if (state.form.step5.inline.holdMode === '自選版型') {
+                const grid = document.createElement('div'); grid.className='grid-tiles';
+                const inlineTemplates = ['文中版型A','文中版型B','文中版型C','文中版型D','文中版型E','文中版型F','文中版型G','文中版型H','文中版型I'];
+                inlineTemplates.forEach(t=>{
+                    const tile = document.createElement('div'); tile.className='tile' + (state.form.step5.inline.holdTemplate===t?' active':'');
+                    const ph = document.createElement('div'); ph.className='preview';
+                    const name = document.createElement('h4'); name.textContent=t;
+                    tile.appendChild(ph); tile.appendChild(name);
+                    tile.addEventListener('click', ()=>{ state.form.step5.inline.holdTemplate = t; state.form.step5.inline.holdAssets = []; renderStep(); });
+                    grid.appendChild(tile);
+                });
+                box.appendChild(createField('選擇文中版型', grid));
+
+                if (state.form.step5.inline.holdTemplate) {
+                    const up = document.createElement('input'); up.type='file'; up.multiple=true; up.accept='image/*,video/*';
+                    up.addEventListener('change', e=>{ state.form.step5.inline.holdAssets = Array.from(e.target.files||[]); renderStep(); });
+                    box.appendChild(createField('上傳素材（示意：需 2 件）', up));
+
+                    box.appendChild(buildCarouselPreview('文中互動式預覽', state.form.step5.inline.holdAssets));
+                }
+            } else if (state.form.step5.inline.holdMode === '系統建議版型') {
+                const info = document.createElement('div'); info.className='muted'; info.textContent='將由系統提供建議版型（此版本僅預留按鈕）。';
+                box.appendChild(info);
+            }
+        } else if (state.form.step5.inline.holdType === '靜態畫面') {
+            const img = document.createElement('input'); img.type='file'; img.accept='image/*'; img.addEventListener('change', e=>{ state.form.step5.inline.holdImage = (e.target.files||[])[0] || null; });
+            box.appendChild(createField('上傳停留畫面底圖', img));
+
+            const btnSel = document.createElement('select'); ['否','是'].forEach(v=>{ const o=document.createElement('option'); o.value=v; o.textContent=v; btnSel.appendChild(o); });
+            btnSel.value = state.form.step5.inline.holdButton.enabled; btnSel.addEventListener('change', e=>{ state.form.step5.inline.holdButton.enabled = e.target.value; renderStep(); });
+            box.appendChild(createField('是否置放按鈕', btnSel));
+
+            if (state.form.step5.inline.holdButton.enabled === '是') {
+                const btnImg = document.createElement('input'); btnImg.type='file'; btnImg.accept='image/*'; btnImg.addEventListener('change', e=>{ state.form.step5.inline.holdButton.imageFile = (e.target.files||[])[0] || null; });
+                box.appendChild(createField('上傳按鈕圖片', btnImg));
+            }
+        }
+    }
+
+    // 第四步：是否需要導連著陸頁
+    const landingSel = document.createElement('select'); ['否','是'].forEach(v=>{ const o=document.createElement('option'); o.value=v; o.textContent=v; landingSel.appendChild(o); });
+    landingSel.value = state.form.step5.inline.needLanding; landingSel.addEventListener('change', e=>{ state.form.step5.inline.needLanding = e.target.value; renderStep(); });
+    box.appendChild(createField('第四步：是否需要導連著陸頁', landingSel));
+
+    if (state.form.step5.inline.needLanding === '是') {
+        const t = document.createElement('input'); t.type='text'; t.placeholder='輸入著陸頁網址'; t.value = state.form.step5.inline.landingUrl || '';
+        t.addEventListener('input', e=>{ state.form.step5.inline.landingUrl = e.target.value; });
+        box.appendChild(createField('著陸頁網址', t));
+    }
+
+    // 預覽區域
+    const prev = document.createElement('div'); prev.className='preview-box';
+    const controls = document.createElement('div'); controls.className='inline';
+    const btnPlay = document.createElement('button'); btnPlay.className='btn'; btnPlay.textContent='播放';
+    const btnPause = document.createElement('button'); btnPause.className='btn'; btnPause.textContent='暫停';
+    const btnStop = document.createElement('button'); btnStop.className='btn ghost'; btnStop.textContent='停止';
+    controls.appendChild(btnPlay); controls.appendChild(btnPause); controls.appendChild(btnStop);
+    const stage = document.createElement('div'); stage.style.minHeight = '220px'; stage.style.display='grid'; stage.style.placeItems='center'; stage.style.overflow='hidden'; stage.style.position='relative';
+    prev.appendChild(controls); prev.appendChild(stage);
+    const hint = document.createElement('div'); hint.className='muted'; hint.style.marginTop='6px'; hint.textContent='預覽：前導特效 → 播放影片（可拖曳縮放） → 停留畫面';
+    prev.appendChild(hint);
+    box.appendChild(prev);
+
+    let videoEl = null; let iframeEl = null; let playing = false;
+    let isPanning = false; let lastPos = {x:0,y:0};
+
+    function clearStage(){
+        stage.innerHTML = '';
+        if (videoEl) { try { videoEl.pause(); } catch(_){}; videoEl.src=''; videoEl.remove(); videoEl=null; }
+        if (iframeEl) { iframeEl.src='about:blank'; iframeEl.remove(); iframeEl=null; }
+    }
+
+    function attachTransformable(el){
+        el.style.position='absolute';
+        const t = state.form.step5.inline.playVideoTransform || { scale:1, x:0, y:0 };
+        function apply(){ el.style.transform = `translate(${t.x}px, ${t.y}px) scale(${t.scale})`; }
+        apply();
+        // 滑鼠拖曳
+        el.addEventListener('mousedown', (e)=>{ isPanning=true; lastPos={x:e.clientX - t.x, y:e.clientY - t.y}; });
+        window.addEventListener('mouseup', ()=> isPanning=false);
+        window.addEventListener('mousemove', (e)=>{ if(!isPanning) return; t.x = e.clientX - lastPos.x; t.y = e.clientY - lastPos.y; state.form.step5.inline.playVideoTransform = t; apply(); });
+        // 滾輪縮放
+        stage.addEventListener('wheel', (e)=>{ e.preventDefault(); const delta = e.deltaY < 0 ? 0.05 : -0.05; t.scale = Math.max(0.2, Math.min(3, (t.scale||1)+delta)); state.form.step5.inline.playVideoTransform = t; apply(); }, { passive:false });
+        // 觸控縮放與拖曳
+        let touchStartDist = 0; let touchDragging = false;
+        stage.addEventListener('touchstart', (e)=>{
+            if (e.touches.length===1){ touchDragging=true; lastPos={x:e.touches[0].clientX - t.x, y:e.touches[0].clientY - t.y}; }
+            if (e.touches.length===2){ touchDragging=false; touchStartDist = Math.hypot(e.touches[0].clientX-e.touches[1].clientX, e.touches[0].clientY-e.touches[1].clientY); }
+        }, { passive:true });
+        stage.addEventListener('touchmove', (e)=>{
+            if (e.touches.length===1 && touchDragging){ t.x = e.touches[0].clientX - lastPos.x; t.y = e.touches[0].clientY - lastPos.y; state.form.step5.inline.playVideoTransform = t; apply(); }
+            if (e.touches.length===2){ const dist = Math.hypot(e.touches[0].clientX-e.touches[1].clientX, e.touches[0].clientY-e.touches[1].clientY); const delta = (dist - touchStartDist)/300; t.scale = Math.max(0.2, Math.min(3, (t.scale||1) + delta)); state.form.step5.inline.playVideoTransform = t; apply(); touchStartDist = dist; }
+        }, { passive:true });
+        stage.addEventListener('touchend', ()=>{ touchDragging=false; });
+    }
+
+    function playLeadVideo(next){
+        clearStage();
+        if (state.form.step5.inline.leadVideoFile){
+            videoEl = document.createElement('video'); videoEl.controls=false; videoEl.muted=true; videoEl.playsInline=true; videoEl.style.maxWidth='100%'; videoEl.style.maxHeight='100%';
+            videoEl.src = makeUrl(state.form.step5.inline.leadVideoFile); stage.appendChild(videoEl);
+            videoEl.onended = ()=> next(); videoEl.play().catch(()=> next()); return;
+        }
+        next();
+    }
+
+    function playMainVideo(next){
+        clearStage();
+        const src = state.form.step5.inline.playVideoSource;
+        if (src === '上傳影片檔' && state.form.step5.inline.playVideoFile){
+            videoEl = document.createElement('video'); videoEl.controls=false; videoEl.muted=true; videoEl.playsInline=true; videoEl.style.maxWidth='100%'; videoEl.style.maxHeight='100%';
+            videoEl.src = makeUrl(state.form.step5.inline.playVideoFile); stage.appendChild(videoEl); attachTransformable(videoEl);
+            videoEl.onended = ()=> next(); videoEl.play().catch(()=> next()); return;
+        }
+        if (src === '輸入url網址' && state.form.step5.inline.playVideoUrl){
+            iframeEl = document.createElement('iframe'); iframeEl.src = state.form.step5.inline.playVideoUrl; iframeEl.allow='autoplay; encrypted-media'; iframeEl.style.border='0'; iframeEl.style.width='560px'; iframeEl.style.height='315px'; stage.appendChild(iframeEl); attachTransformable(iframeEl);
+            setTimeout(()=> next(), 10000); return;
+        }
+        next();
+    }
+
+    function showHold(){
+        clearStage();
+        if (state.form.step5.inline.holdType === '靜態畫面' && state.form.step5.inline.holdImage) {
+            const img = document.createElement('img'); img.style.maxWidth='100%'; img.style.maxHeight='100%';
+            img.src = makeUrl(state.form.step5.inline.holdImage); stage.appendChild(img);
+            
+            if (state.form.step5.inline.holdButton.enabled === '是' && state.form.step5.inline.holdButton.imageFile) {
+                const btn = document.createElement('img'); btn.style.position='absolute'; btn.style.bottom='20px'; btn.style.right='20px'; btn.style.maxWidth='80px'; btn.style.maxHeight='40px';
+                btn.src = makeUrl(state.form.step5.inline.holdButton.imageFile); stage.appendChild(btn);
+            }
+        }
+    }
+
+    function start(){
+        playing = true;
+        const needLead = state.form.step5.inline.needLead === '是' && !!state.form.step5.inline.leadVideoFile;
+        const needPlayVideo = state.form.step5.inline.playVideo === '是' && (state.form.step5.inline.playVideoSource==='上傳影片檔' ? !!state.form.step5.inline.playVideoFile : !!state.form.step5.inline.playVideoUrl);
+        const needHold = state.form.step5.inline.needHold === '是';
+
+        function nextAfterLead(){ needPlayVideo ? playMainVideo(nextAfterPlayVideo) : (needHold ? showHold() : clearStage()); }
+        function nextAfterPlayVideo(){ needHold ? showHold() : clearStage(); }
+
+        if (needLead) playLeadVideo(nextAfterLead);
+        else if (needPlayVideo) playMainVideo(nextAfterPlayVideo);
+        else if (needHold) showHold();
+        else { clearStage(); }
+    }
+
+    function pause(){
+        if (!playing) return;
+        if (videoEl && !videoEl.paused) { videoEl.pause(); }
+    }
+    function resume(){
+        if (!playing) { start(); return; }
+        if (videoEl && videoEl.paused) { videoEl.play().catch(()=>{}); }
+    }
+    function stop(){ playing=false; clearStage(); }
+
+    btnPlay.addEventListener('click', ()=>{ if (playing) resume(); else start(); });
+    btnPause.addEventListener('click', ()=> pause());
+    btnStop.addEventListener('click', ()=> stop());
     return box;
 }
 
@@ -513,32 +1063,44 @@ function renderStep6(host) {
     const adv = document.createElement('div');
     state.form.step6.triggers.forEach(n=>{
         if (n==='地圖') {
-            const f = document.createElement('input'); f.type='text'; f.placeholder='輸入地區（例：台北市/信義區）'; f.value = state.form.step6.settings.geo||''; f.addEventListener('input', e=>{ state.form.step6.settings.geo = e.target.value; });
-            adv.appendChild(createField('地圖｜地區', f));
+            const f1 = document.createElement('input'); f1.type='text'; f1.placeholder='設定定位條件（例：住家定位半徑100公尺內）'; f1.value = state.form.step6.settings.geo||''; f1.addEventListener('input', e=>{ state.form.step6.settings.geo = e.target.value; });
+            const f2 = document.createElement('input'); f2.type='file'; f2.multiple=true; f2.accept='.csv,.xlsx,.txt'; f2.addEventListener('change', e=>{ state.form.step6.settings.geoFiles = Array.from(e.target.files||[]); });
+            adv.appendChild(createField('地圖｜定位條件', f1, '需要客戶提供分店地址'));
+            adv.appendChild(createField('地圖｜資料上傳', f2, '批次或逐筆上傳分店地址資料'));
         }
         if (n==='中原標準時間') {
-            const f = document.createElement('input'); f.type='text'; f.placeholder='HH:mm 範圍，例：08:00-18:00'; f.value = state.form.step6.settings.time||''; f.addEventListener('input', e=>{ state.form.step6.settings.time = e.target.value; });
-            adv.appendChild(createField('中原標準時間｜時段', f));
+            const f = document.createElement('input'); f.type='text'; f.placeholder='廣告點擊時觸發'; f.value = state.form.step6.settings.time||''; f.addEventListener('input', e=>{ state.form.step6.settings.time = e.target.value; });
+            adv.appendChild(createField('中原標準時間｜觸發條件', f, '廣告點擊時觸發'));
         }
         if (n==='溫度') {
-            const f = document.createElement('input'); f.type='text'; f.placeholder='溫度區間（°C），例：18-28'; f.value = state.form.step6.settings.temp||''; f.addEventListener('input', e=>{ state.form.step6.settings.temp = e.target.value; });
-            adv.appendChild(createField('溫度｜範圍', f));
+            const f1 = document.createElement('input'); f1.type='text'; f1.placeholder='溫度高於或低於幾度，不投放廣告'; f1.value = state.form.step6.settings.tempCondition||''; f1.addEventListener('input', e=>{ state.form.step6.settings.tempCondition = e.target.value; });
+            const f2 = document.createElement('input'); f2.type='text'; f2.placeholder='溫度達一定條件時，投放不同素材'; f2.value = state.form.step6.settings.tempMaterial||''; f2.addEventListener('input', e=>{ state.form.step6.settings.tempMaterial = e.target.value; });
+            adv.appendChild(createField('溫度｜特殊觸發條件', f1, '依定位，如溫度高於或低於幾度，不投放廣告'));
+            adv.appendChild(createField('溫度｜素材投放條件', f2, '或溫度達一定條件時，投放不同素材'));
         }
         if (n==='溼度') {
-            const f = document.createElement('input'); f.type='text'; f.placeholder='相對溼度 % 區間，例：40-70'; f.value = state.form.step6.settings.hum||''; f.addEventListener('input', e=>{ state.form.step6.settings.hum = e.target.value; });
-            adv.appendChild(createField('溼度｜範圍', f));
+            const f1 = document.createElement('input'); f1.type='text'; f1.placeholder='溼度高於或低於多少，不投放廣告'; f1.value = state.form.step6.settings.humCondition||''; f1.addEventListener('input', e=>{ state.form.step6.settings.humCondition = e.target.value; });
+            const f2 = document.createElement('input'); f2.type='text'; f2.placeholder='溼度達一定條件時，投放不同素材'; f2.value = state.form.step6.settings.humMaterial||''; f2.addEventListener('input', e=>{ state.form.step6.settings.humMaterial = e.target.value; });
+            adv.appendChild(createField('溼度｜特殊觸發條件', f1, '依定位，如溼度高於或低於多少，不投放廣告'));
+            adv.appendChild(createField('溼度｜素材投放條件', f2, '或溼度達一定條件時，投放不同素材'));
         }
         if (n==='下雨機率') {
-            const f = document.createElement('input'); f.type='text'; f.placeholder='降雨機率 % 區間，例：30-80'; f.value = state.form.step6.settings.rain||''; f.addEventListener('input', e=>{ state.form.step6.settings.rain = e.target.value; });
-            adv.appendChild(createField('下雨機率｜範圍', f));
+            const f1 = document.createElement('input'); f1.type='text'; f1.placeholder='機率高於或低於多少，不投放廣告'; f1.value = state.form.step6.settings.rainCondition||''; f1.addEventListener('input', e=>{ state.form.step6.settings.rainCondition = e.target.value; });
+            const f2 = document.createElement('input'); f2.type='text'; f2.placeholder='機率達一定條件時，投放不同素材'; f2.value = state.form.step6.settings.rainMaterial||''; f2.addEventListener('input', e=>{ state.form.step6.settings.rainMaterial = e.target.value; });
+            adv.appendChild(createField('下雨機率｜特殊觸發條件', f1, '依定位，如機率高於或低於多少，不投放廣告'));
+            adv.appendChild(createField('下雨機率｜素材投放條件', f2, '或機率達一定條件時，投放不同素材'));
         }
         if (n==='紫外線指數') {
-            const f = document.createElement('input'); f.type='text'; f.placeholder='UVI 區間，例：3-7'; f.value = state.form.step6.settings.uvi||''; f.addEventListener('input', e=>{ state.form.step6.settings.uvi = e.target.value; });
-            adv.appendChild(createField('紫外線指數｜範圍', f));
+            const f1 = document.createElement('input'); f1.type='text'; f1.placeholder='分級高於或低於多少，不投放廣告'; f1.value = state.form.step6.settings.uviCondition||''; f1.addEventListener('input', e=>{ state.form.step6.settings.uviCondition = e.target.value; });
+            const f2 = document.createElement('input'); f2.type='text'; f2.placeholder='分級達一定條件時，投放不同素材'; f2.value = state.form.step6.settings.uviMaterial||''; f2.addEventListener('input', e=>{ state.form.step6.settings.uviMaterial = e.target.value; });
+            adv.appendChild(createField('紫外線指數｜特殊觸發條件', f1, '依定位，如分級高於或低於多少，不投放廣告'));
+            adv.appendChild(createField('紫外線指數｜素材投放條件', f2, '或分級達一定條件時，投放不同素材'));
         }
         if (n==='空氣品質') {
-            const f = document.createElement('input'); f.type='text'; f.placeholder='AQI 區間，例：0-50'; f.value = state.form.step6.settings.aqi||''; f.addEventListener('input', e=>{ state.form.step6.settings.aqi = e.target.value; });
-            adv.appendChild(createField('空氣品質｜範圍', f));
+            const f1 = document.createElement('input'); f1.type='text'; f1.placeholder='分級高於或低於多少，不投放廣告'; f1.value = state.form.step6.settings.aqiCondition||''; f1.addEventListener('input', e=>{ state.form.step6.settings.aqiCondition = e.target.value; });
+            const f2 = document.createElement('input'); f2.type='text'; f2.placeholder='分級達一定條件時，投放不同素材'; f2.value = state.form.step6.settings.aqiMaterial||''; f2.addEventListener('input', e=>{ state.form.step6.settings.aqiMaterial = e.target.value; });
+            adv.appendChild(createField('空氣品質｜特殊觸發條件', f1, '依定位，如分級高於或低於多少，不投放廣告'));
+            adv.appendChild(createField('空氣品質｜素材投放條件', f2, '或分級達一定條件時，投放不同素材'));
         }
     });
     wrap.appendChild(adv);
